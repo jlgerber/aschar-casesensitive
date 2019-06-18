@@ -4,7 +4,7 @@ use nom::{
     InputTakeAtPosition,
     AsChar,
     IResult,
-    character::complete::{alpha1, alphanumeric0},
+    character::complete::{alpha1, digit0, alphanumeric0},
     combinator::{ recognize},
     error::ErrorKind,
     sequence::tuple,
@@ -374,6 +374,33 @@ pub fn alpha_alphanum(input: &str) -> IResult<&str, &str> {
     recognize(tuple((alpha1, alphanumeric0)))(input)
 }
 
+/// Parser which takes zero or more numbers followed by one or more letters
+/// 
+/// # Parameters
+/// 
+/// * `input` - The input data (generally &[u8] or &str) to parse
+/// 
+/// # Returns
+///   A tuple of (remaining, processed) T, if successful. Otherwise,
+/// a nom Error. 
+/// 
+/// # Examples
+/// 
+/// ```
+/// use nom::{
+///     error::ParseError,
+///     InputTakeAtPosition,
+///     AsChar,
+///     IResult,
+/// };
+/// use aschar_casesensitive::{digit0_alpha1, AsCharCaseSensitive};
+/// 
+/// let parser: IResult<&str, &str> = digit0_alpha1("123abca");
+/// ```
+pub fn digit0_alpha1(input: &str) -> IResult<&str, &str> {
+    recognize(tuple((digit0, alpha1)))(input)
+}
+
 /// Parser which takes an uppercase letter followed by zero or more uppercase letters and numbers
 /// 
 /// # Parameters
@@ -401,6 +428,35 @@ pub fn alpha_alphanum_upper(input: &str) -> IResult<&str, &str> {
     recognize(tuple((upperalpha1, upperalphanum0)))(input)
 }
 
+
+/// Parser which takes zero or more digits followed by one or more
+/// uppercase characters
+/// 
+/// # Parameters
+/// 
+/// * `input` - The input data (generally &[u8] or &str) to parse
+/// 
+/// # Returns
+///   A tuple of (remaining, processed) T, if successful. Otherwise,
+/// a nom Error. 
+/// 
+/// # Examples
+/// 
+/// ```
+/// use nom::{
+///     error::ParseError,
+///     InputTakeAtPosition,
+///     AsChar,
+///     IResult,
+/// };
+/// use aschar_casesensitive::{digit0_upperalpha1, AsCharCaseSensitive};
+/// 
+/// let parser: IResult<&str, &str> = digit0_upperalpha1("51AVB");
+/// ```
+pub fn digit0_upperalpha1(input: &str) -> IResult<&str, &str> {
+    recognize(tuple((digit0, upperalpha1)))(input)
+}
+
 /// Parser which takes a lowercase letter followed by zero or more lowercase letters and numbers
 /// 
 /// # Parameters
@@ -422,13 +478,39 @@ pub fn alpha_alphanum_upper(input: &str) -> IResult<&str, &str> {
 /// };
 /// use aschar_casesensitive::{alpha_alphanum_lower, AsCharCaseSensitive};
 /// 
-/// let parser: IResult<&str, &str> = alpha_alphanum_lower("a1budy23times47");
+/// let parser: IResult<&str, &str> = alpha_alphanum_alpha_lower("a1budy23times47");
 /// ```
 pub fn alpha_alphanum_lower(input: &str) -> IResult<&str, &str> {
     recognize(tuple((loweralpha1, loweralphanum0)))(input)
 }
 
-
+/// Parser which takes a lowercase letter followed by zero or more lowercase letters and numbers
+/// followed by one or more lowercase letters
+/// 
+/// # Parameters
+/// 
+/// * `input` - The input data (generally &[u8] or &str) to parse
+/// 
+/// # Returns
+///   A tuple of (remaining, processed) T, if successful. Otherwise,
+/// a nom Error. 
+/// 
+/// # Examples
+/// 
+/// ```
+/// use nom::{
+///     error::ParseError,
+///     InputTakeAtPosition,
+///     AsChar,
+///     IResult,
+/// };
+/// use aschar_casesensitive::{digit0_loweralpha1, AsCharCaseSensitive};
+/// 
+/// let parser: IResult<&str, &str> = digit0_loweralpha1("134adb");
+/// ```
+pub fn digit0_loweralpha1(input: &str) -> IResult<&str, &str> {
+    recognize(tuple((digit0, loweralpha1)))(input)
+}
 
 #[cfg(test)]
 mod tests {
@@ -727,5 +809,23 @@ mod tests {
         assert_eq!(la, Err(Err::Error(("1f1bar", Alpha)))) ;
     }
 
+
+
+    //-----------------------------//
+    // DIGIT0 ALPHA LOWER 1        //
+    //-----------------------------// 
+
+    #[test]
+    fn digit0_loweralpha1_fails_with_uppercase_letter_followed_by_number_and_letters() {
+        let la: IResult<&str, &str> = digit0_loweralpha1("F1BAR");
+        assert_eq!(la, Err(Err::Error(("F1BAR", Alpha)))) ;
+    }
+
+    #[test]
+    fn digit0_loweralpha1_succeeds_with_numbers_followed_by_lowercase_letters() {
+        let la: IResult<&str, &str> = digit0_loweralpha1("11frab");
+        assert_eq!(la, Ok(("", "11frab")));
+    }
 }
+
 
