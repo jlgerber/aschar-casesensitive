@@ -4,8 +4,8 @@ use nom::{
     InputTakeAtPosition,
     AsChar,
     IResult,
-    character::complete::{alpha1, digit0, alphanumeric0},
-    combinator::{ recognize},
+    character::complete::{alpha1, alphanumeric0},
+    combinator::{recognize, map_res},
     error::ErrorKind,
     sequence::tuple,
 };
@@ -374,7 +374,8 @@ pub fn alpha_alphanum(input: &str) -> IResult<&str, &str> {
     recognize(tuple((alpha1, alphanumeric0)))(input)
 }
 
-/// Parser which takes zero or more numbers followed by one or more letters
+/// Parser which takes a letter followed by zero or more letters and numbers
+/// followed by one or more letters
 /// 
 /// # Parameters
 /// 
@@ -393,12 +394,18 @@ pub fn alpha_alphanum(input: &str) -> IResult<&str, &str> {
 ///     AsChar,
 ///     IResult,
 /// };
-/// use aschar_casesensitive::{digit0_alpha1, AsCharCaseSensitive};
+/// use aschar_casesensitive::{alpha_alphanum_alpha, AsCharCaseSensitive};
 /// 
-/// let parser: IResult<&str, &str> = digit0_alpha1("123abca");
+/// let parser: IResult<&str, &str> = alpha_alphanum_alpha("a2F3gab4a");
 /// ```
-pub fn digit0_alpha1(input: &str) -> IResult<&str, &str> {
-    recognize(tuple((digit0, alpha1)))(input)
+pub fn alpha_alphanum_alpha(input: &str) -> IResult<&str, &str> {
+    map_res(alpha_alphanum, |s: &str| {
+        if s.chars().next_back().unwrap().is_alphabetic() {
+            Ok(s)
+        } else {
+            Err(nom::Err::Error((s, ErrorKind::Digit)))
+        }
+    })(input)
 }
 
 /// Parser which takes an uppercase letter followed by zero or more uppercase letters and numbers
@@ -428,10 +435,8 @@ pub fn alpha_alphanum_upper(input: &str) -> IResult<&str, &str> {
     recognize(tuple((upperalpha1, upperalphanum0)))(input)
 }
 
-
-/// Parser which takes zero or more digits followed by one or more
-/// uppercase characters
-/// 
+/// Parser which takes an uppercase letter followed by zero or more uppercase letters and numbers
+/// followed by one or more uppercase letters
 /// # Parameters
 /// 
 /// * `input` - The input data (generally &[u8] or &str) to parse
@@ -449,12 +454,18 @@ pub fn alpha_alphanum_upper(input: &str) -> IResult<&str, &str> {
 ///     AsChar,
 ///     IResult,
 /// };
-/// use aschar_casesensitive::{digit0_upperalpha1, AsCharCaseSensitive};
+/// use aschar_casesensitive::{alpha_alphanum_upper_alpha, AsCharCaseSensitive};
 /// 
-/// let parser: IResult<&str, &str> = digit0_upperalpha1("51AVB");
+/// let parser: IResult<&str, &str> = alpha_alphanum_upper_alpha("A1THS1IS2IT");
 /// ```
-pub fn digit0_upperalpha1(input: &str) -> IResult<&str, &str> {
-    recognize(tuple((digit0, upperalpha1)))(input)
+pub fn alpha_alphanum_upper_alpha(input: &str) -> IResult<&str, &str> {
+    map_res(alpha_alphanum_upper, |s: &str| {
+        if s.chars().next_back().unwrap().is_alphabetic() {
+            Ok(s)
+        } else {
+            Err(nom::Err::Error((s, ErrorKind::Digit)))
+        }
+    })(input)
 }
 
 /// Parser which takes a lowercase letter followed by zero or more lowercase letters and numbers
@@ -478,15 +489,15 @@ pub fn digit0_upperalpha1(input: &str) -> IResult<&str, &str> {
 /// };
 /// use aschar_casesensitive::{alpha_alphanum_lower, AsCharCaseSensitive};
 /// 
-/// let parser: IResult<&str, &str> = alpha_alphanum_alpha_lower("a1budy23times47");
+/// let parser: IResult<&str, &str> = alpha_alphanum_lower("a1budy23times");
 /// ```
 pub fn alpha_alphanum_lower(input: &str) -> IResult<&str, &str> {
     recognize(tuple((loweralpha1, loweralphanum0)))(input)
 }
 
-/// Parser which takes a lowercase letter followed by zero or more lowercase letters and numbers
+
+/// Parser which takes an lowercase letter followed by zero or more lowercase letters and numbers
 /// followed by one or more lowercase letters
-/// 
 /// # Parameters
 /// 
 /// * `input` - The input data (generally &[u8] or &str) to parse
@@ -504,12 +515,18 @@ pub fn alpha_alphanum_lower(input: &str) -> IResult<&str, &str> {
 ///     AsChar,
 ///     IResult,
 /// };
-/// use aschar_casesensitive::{digit0_loweralpha1, AsCharCaseSensitive};
+/// use aschar_casesensitive::{alpha_alphanum_lower_alpha, AsCharCaseSensitive};
 /// 
-/// let parser: IResult<&str, &str> = digit0_loweralpha1("134adb");
+/// let parser: IResult<&str, &str> = alpha_alphanum_lower_alpha("a1234a");
 /// ```
-pub fn digit0_loweralpha1(input: &str) -> IResult<&str, &str> {
-    recognize(tuple((digit0, loweralpha1)))(input)
+pub fn alpha_alphanum_lower_alpha(input: &str) -> IResult<&str, &str> {
+    map_res(alpha_alphanum_lower, |s: &str| {
+        if s.chars().next_back().unwrap().is_alphabetic() {
+            Ok(s)
+        } else {
+            Err(nom::Err::Error((s, ErrorKind::Digit)))
+        }
+    })(input)
 }
 
 #[cfg(test)]
@@ -764,6 +781,35 @@ mod tests {
         assert_eq!(la, Err(Err::Error(("1f1Bar", Alpha)))) ;
     }
 
+
+    //-----------------------//
+    //  ALPHA ALPHANUM ALPHA //
+    //-----------------------// 
+
+    #[test]
+    fn alpha_alphanum_alpha_succeeds_with_letter_followed_by_number_and_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_alpha("f1bar");
+        assert_eq!(la, Ok(("","f1bar"))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_alpha_fails_with_letter_followed_by_number_and_letters_followed_by_number() {
+        let la: IResult<&str, &str> = alpha_alphanum_alpha("f1bar1");
+        assert_eq!(la,  Err(Err::Error(("f1bar1", ErrorKind::MapRes)))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_alpha_succeeds_with_uppercase_letter_followed_by_number_and_uppercase_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_alpha("F1BAR");
+        assert_eq!(la, Ok(("","F1BAR"))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_alpha_fails_with_number_followed_by_numbers_and_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_alpha("1f1Bar");
+        assert_eq!(la, Err(Err::Error(("1f1Bar", ErrorKind::Alpha)))) ;
+    }
+
     //-----------------------//
     // ALPHA ALPHANUM UPPER  //
     //-----------------------// 
@@ -787,6 +833,34 @@ mod tests {
     }
 
 
+    //-----------------------------//
+    // ALPHA ALPHANUM UPPER ALPHA  //
+    //-----------------------------// 
+
+    #[test]
+    fn alpha_alphanum_upper_alpha_fails_with_lowercase_letter_followed_by_number_and_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_upper_alpha("f1BAR");
+        assert_eq!(la, Err(Err::Error(("f1BAR", Alpha)))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_upper_alpha_succeeds_with_uppercase_letter_followed_by_number_and_uppercase_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_upper_alpha("F1BAR");
+        assert_eq!(la, Ok(("","F1BAR"))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_upper_alpha_fails_with_uppercase_letter_followed_by_number_and_uppercase_letters_followed_by_numver() {
+        let la: IResult<&str, &str> = alpha_alphanum_upper_alpha("F1BAR1");
+        assert_eq!(la, Err(Err::Error(("F1BAR1", ErrorKind::MapRes))));
+    }
+
+    #[test]
+    fn alpha_alphanum_upper_alpha_fails_with_number_followed_by_numbers_and_uppercase_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_upper_alpha("1F1BAR");
+        assert_eq!(la, Err(Err::Error(("1F1BAR", Alpha)))) ;
+    }
+
     //-----------------------//
     // ALPHA ALPHANUM LOWER  //
     //-----------------------// 
@@ -809,23 +883,31 @@ mod tests {
         assert_eq!(la, Err(Err::Error(("1f1bar", Alpha)))) ;
     }
 
-
-
-    //-----------------------------//
-    // DIGIT0 ALPHA LOWER 1        //
-    //-----------------------------// 
+    //-----------------------//
+    // ALPHA ALPHANUM LOWER  //
+    //-----------------------// 
 
     #[test]
-    fn digit0_loweralpha1_fails_with_uppercase_letter_followed_by_number_and_letters() {
-        let la: IResult<&str, &str> = digit0_loweralpha1("F1BAR");
+    fn alpha_alphanum_lower_alpha_fails_with_uppercase_letter_followed_by_number_and_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_lower_alpha("F1BAR");
         assert_eq!(la, Err(Err::Error(("F1BAR", Alpha)))) ;
     }
 
     #[test]
-    fn digit0_loweralpha1_succeeds_with_numbers_followed_by_lowercase_letters() {
-        let la: IResult<&str, &str> = digit0_loweralpha1("11frab");
-        assert_eq!(la, Ok(("", "11frab")));
+    fn alpha_alphanum_lower_alpha_succeeds_with_lowercase_letter_followed_by_number_and_lowercase_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_lower_alpha("f1bar");
+        assert_eq!(la, Ok(("","f1bar"))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_lower_alpha_fails_with_lowercase_letter_followed_by_number_and_lowercase_letters_followed_by_number() {
+        let la: IResult<&str, &str> = alpha_alphanum_lower_alpha("f1bar1");
+        assert_eq!(la, Err(Err::Error(("f1bar1", ErrorKind::MapRes)))) ;
+    }
+
+    #[test]
+    fn alpha_alphanum_lower_alpha_fails_with_number_followed_by_numbers_and_lowercase_letters() {
+        let la: IResult<&str, &str> = alpha_alphanum_lower_alpha("1f1bar");
+        assert_eq!(la, Err(Err::Error(("1f1bar", Alpha)))) ;
     }
 }
-
-
